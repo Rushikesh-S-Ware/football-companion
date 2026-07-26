@@ -1,0 +1,21 @@
+# Minimal packaging file — its ONLY job is to make our code importable as a
+# package named "fpl_agent" so that commands like `python -m fpl_agent.weekly`
+# work while our source lives under src/.
+#
+# We deliberately keep the runtime dependencies in requirements.txt (per the
+# project spec: "plain venv + requirements.txt"). This file is packaging plumbing,
+# not a Poetry/Pipenv setup.
+#
+# One-time setup after creating the venv:  pip install -e .
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fpl-agent"
+version = "0.1.0"
+description = "Autonomous Fantasy Premier League manager agent (v1)"
+requires-python = ">=3.11"
+
+[tool.setuptools.packages.find]
+where = ["src"]

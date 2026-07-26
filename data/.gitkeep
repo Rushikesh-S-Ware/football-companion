@@ -1,0 +1,2 @@
+# This file exists only so git tracks the (otherwise empty) data/ folder.
+# The DuckDB snapshot database (*.duckdb) lives here but is gitignored.
