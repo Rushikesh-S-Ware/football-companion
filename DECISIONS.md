@@ -18,16 +18,17 @@ _The empty project skeleton, tooling, and a smoke test that proves the football 
 - Set up the basic project tooling
 - Got the API key from football-data.org
 - Checked Barça's next five fixtures to confirm the API key is working
-
+- Setup the virtual Environment
+- Make diff files to keep API key secrets.  
 ---
 
 ## Phase 1 — Data layer
 _Verifying the APIs and ingesting fixtures/results/standings/news into DuckDB. (I own the schema.)_
 
-- 
-- 
-- 
-- 
+- Connected Through API
+- Created a Raw dataset
+- Cleaned the dataset
+- Stored in DuckDb
 
 ---
 
