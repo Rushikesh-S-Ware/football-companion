@@ -154,6 +154,7 @@ itself, write notes, update opinions; see its season accuracy; and explain every
 module in plain English. Everything beyond that is phase 2.
 
 ## Current status
-- **Phase 0: complete.** Live API proof ran (real Barça fixtures + La Liga table).
-  **Phase 1 (data layer): in progress.** (Pivoted from an earlier FPL-manager
-  concept to this Football Companion.) Update this line at the end of each phase.
+- **Phase 1 (data layer): complete.** `ingest` command + 3 tests; football-data.org
+  + RSS form the live pipeline (API-Football free tier lacks current-season access —
+  parked for phase 2/paid). **Phase 2 (memory system): in progress.** (Pivoted from
+  an earlier FPL-manager concept.) Update this line at the end of each phase.

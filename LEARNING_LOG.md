@@ -13,8 +13,26 @@
 
 ---
 
-## 2026-07-27 · Built the data layer (ingest command + tests)
+## 2026-07-27 · Match-note template (Artifact #2) + start Phase 2
 **Commit:** _(this one)_
+
+- **What we did:** Added `memory/match_notes/_TEMPLATE.md` — the form the companion
+  fills in per reviewed match. Rushikesh chose a **blend** of structured stats +
+  narrative reflection, and approved it. Marked Phase 1 complete.
+- **Why:** A consistent note format makes match memories scannable *and* reflective.
+  Two deliberate sections: "What I saw (my own eyes)" captures Rushikesh's human
+  observations, and "Did it change my mind?" links a match to an `opinions.md` update
+  — that link is what closes the learning loop (evidence → belief change, with a reason).
+- **Why not alternatives:** Pure-structured (option A) was fast to fill but shallow;
+  pure-narrative (option B) was rich but inconsistent to scan/query later. The blend
+  keeps both.
+- **How it could be better:** Later, auto-fill the result/stats from the DB so he only
+  writes the human parts (what he saw, whether it changed his mind).
+
+---
+
+## 2026-07-27 · Built the data layer (ingest command + tests)
+**Commit:** `39124b6`
 
 - **What we did:** Added `db.py` (DuckDB helpers), `sources.py` (fetch + parse for
   football-data.org, API-Football, RSS), `ingest.py` (the `python -m companion.ingest`
