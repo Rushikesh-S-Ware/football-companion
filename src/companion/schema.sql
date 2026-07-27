@@ -107,5 +107,22 @@ CREATE TABLE IF NOT EXISTS lineups (
     is_starter        BOOLEAN              -- TRUE = starting XI, FALSE = bench
 );
 
--- Note: the `predictions` table is intentionally NOT here — it belongs to the
--- memory/self-evaluation system we build in Phase 2.
+-- ---------------------------------------------------------------------------
+-- predictions — the self-evaluation loop. A row is written BEFORE a match (the
+-- companion's call), then filled in with the actual result AFTER (in Phase 4's
+-- review), so we can measure honest accuracy over the season.
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS predictions (
+    created_at            TIMESTAMP NOT NULL,  -- when we logged the prediction (pre-match)
+    match_id              INTEGER,             -- football-data.org match id (if known)
+    competition_code      VARCHAR,             -- 'PD' / 'CL'
+    match_label           VARCHAR,             -- human-readable, e.g. 'Barcelona vs Elche'
+    predicted_result      VARCHAR,             -- 'HOME_WIN' / 'DRAW' / 'AWAY_WIN'
+    predicted_home_score  INTEGER,
+    predicted_away_score  INTEGER,
+    confidence            INTEGER,             -- 0–100
+    reasoning             VARCHAR,             -- why the companion made this call
+    actual_home_score     INTEGER,             -- filled in after the match (NULL until then)
+    actual_away_score     INTEGER,
+    correct               BOOLEAN              -- filled in after scoring (NULL until then)
+);

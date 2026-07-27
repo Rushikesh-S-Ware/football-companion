@@ -13,8 +13,31 @@
 
 ---
 
-## 2026-07-27 · Match-note template (Artifact #2) + start Phase 2
+## 2026-07-27 · Memory tools + predictions table (Phase 2 core)
 **Commit:** _(this one)_
+
+- **What we did:** Added `memory.py` (`read_memory` / `write_memory`), `predictions.py`
+  (`log_prediction` / `get_predictions`), the `predictions` table in `schema.sql`,
+  `discussions.md`, and 4 tests. `read_memory` does keyword + most-recent-first search
+  over the markdown brain; `write_memory` appends/creates the right file; predictions
+  are stored **before** a match.
+- **Why:** These are the exact tools the Phase 3 agent will call to remember and
+  record. `read_memory` is **deliberately simple** (keyword + recency) per the spec —
+  it's explainable and enough for a small brain. Logging predictions pre-match is what
+  keeps the season accuracy number honest (we can't rewrite history after the fact).
+- **Why not alternatives:** (1) Embeddings / vector DB for retrieval — rejected for v1:
+  overkill for a handful of markdown files, and a keyword search is easy to explain in
+  an interview. We only add embeddings if this *provably* fails. (2) Storing opinions/
+  notes in DB tables — rejected: markdown in git is human-readable *and* versioned (you
+  can `git diff` how an opinion changed over the season).
+- **How it could be better:** `read_memory` scoring is naive term-counting (could weight
+  title hits, or rank by date-in-filename); `write_memory("opinion")` only appends
+  (could update a specific take in place). Good enough now; revisit if retrieval feels weak.
+
+---
+
+## 2026-07-27 · Match-note template (Artifact #2) + start Phase 2
+**Commit:** `4deed23`
 
 - **What we did:** Added `memory/match_notes/_TEMPLATE.md` — the form the companion
   fills in per reviewed match. Rushikesh chose a **blend** of structured stats +
