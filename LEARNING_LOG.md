@@ -13,8 +13,29 @@
 
 ---
 
-## 2026-07-27 · Closed Phase 0 (live API proof + recorded decisions)
+## 2026-07-27 · Chose the data-layer schema (Design B, normalized)
 **Commit:** _(this one)_
+
+- **What we did:** Added `src/companion/schema.sql` — the DuckDB data model.
+  Design B (**normalized**): a `teams` reference table storing both APIs' ids for the
+  same club, plus **append-only snapshot** tables (`matches`, `standings`, `news`,
+  `injuries`, `lineups`), each stamped with `fetched_at`.
+- **Why:** Our two sources name *and* id the same club differently (Barça = 81 on
+  football-data.org, 529 on API-Football). Normalizing teams once makes every later
+  join reliable. Append-only (never overwrite) is what gives the companion its
+  season-long memory.
+- **Why not alternatives:** Design A (team names stored as plain text) was fewer
+  tables and no joins, but cross-source joins would be fragile (spelling mismatches).
+  Rushikesh — strong in SQL — chose B; joins are his home turf and it's the stronger
+  portfolio story.
+- **How it could be better:** Could add explicit foreign-key constraints, a surrogate
+  `snapshot_id`, or split `matches` into static-info + score-snapshot tables if
+  storage grows. Kept lean for now; revisit only if a real need appears.
+
+---
+
+## 2026-07-27 · Closed Phase 0 (live API proof + recorded decisions)
+**Commit:** `5944968`
 
 - **What we did:** Ran the smoke test against the *real* football-data.org API (got
   Barça's actual upcoming fixtures + the La Liga table), Rushikesh wrote his Phase 0
