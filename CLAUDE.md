@@ -19,6 +19,11 @@
   grammar at most). That file is his interview prep.
 - Small steps. One feature per commit, clear commit messages. If he asks "why",
   answer before writing more code.
+- **After every commit:** append an entry to `LEARNING_LOG.md` (I maintain this one,
+  in my words) covering **what** we did, **why**, **why not the alternatives**, and
+  **how it could be better** — and summarize that same four-part breakdown in chat.
+  This is the teaching journal; it is distinct from `DECISIONS.md` (his words, his
+  interview prep). Newest entries first.
 - **Three things he owns personally** — I draft options + explain trade-offs simply,
   then he chooses and edits the final version himself:
   1. the DuckDB schema (Phase 1)
