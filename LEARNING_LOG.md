@@ -13,8 +13,33 @@
 
 ---
 
-## 2026-07-27 · Chose the data-layer schema (Design B, normalized)
+## 2026-07-27 · Built the data layer (ingest command + tests)
 **Commit:** _(this one)_
+
+- **What we did:** Added `db.py` (DuckDB helpers), `sources.py` (fetch + parse for
+  football-data.org, API-Football, RSS), `ingest.py` (the `python -m companion.ingest`
+  command), and 3 tests. First real ingest landed **569 matches, 56 standings rows,
+  54 teams, 164 news items** as timestamped snapshots.
+- **Why:** Split the code into FETCH (talks to the network), PARSE (pure functions),
+  and STORE (database) so the deterministic bits are unit-tested with fake data and no
+  network. Every row is stamped `fetched_at` (append-only). Each source is wrapped in
+  its own try/except so one failure (e.g. a rate limit) doesn't sink the whole run.
+- **Why not alternatives:** (1) Calling the APIs *live during chat* — rejected: rate
+  limits (football-data.org = 10/min). We cache into DuckDB and read from there.
+  (2) One big module — rejected: separating fetch/parse/store is what makes the parse
+  functions testable and the code readable.
+- **KEY FINDING + how it could be better:** The API-Football **free plan can't access
+  the current season** (only ~2022–2024), so live lineups/injuries aren't available.
+  We turned it OFF by default (`INGEST_API_FOOTBALL=1` to re-enable) and park it for
+  phase 2 / a paid plan — the companion will get injury context from news + pasted
+  notes instead. Future polish: retry/backoff, de-dupe news by URL across snapshots,
+  add foreign-key constraints, and (if ever needed) build the team bridge from an
+  accessible season (2024) since API-Football team ids are stable across seasons.
+
+---
+
+## 2026-07-27 · Chose the data-layer schema (Design B, normalized)
+**Commit:** `026a3e7`
 
 - **What we did:** Added `src/companion/schema.sql` — the DuckDB data model.
   Design B (**normalized**): a `teams` reference table storing both APIs' ids for the
