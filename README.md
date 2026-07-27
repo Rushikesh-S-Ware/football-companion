@@ -1,44 +1,54 @@
-# FPL Manager Agent
+# Football Companion Agent
 
-An **autonomous Fantasy Premier League manager**. Each gameweek it pulls live FPL
-data, projects player points with a transparent formula, optimizes a legal squad
-under official FPL rules, applies Claude's judgment on top (injuries, rotation,
-pasted news), and writes a recommendation report — transfers, captain, bench order,
-with written reasoning. Picks are submitted manually on the FPL website; **the
-program never logs into the FPL account.**
+A **conversational football analyst — a *friend* you talk football with**, focused
+on **La Liga and the Champions League, with FC Barcelona at the center**. It chats
+about matches, form, tactics, and formations using **real current data** (never
+invented numbers), writes **pre-match briefings** with a **logged prediction**, and
+after each matchday **reviews what happened and scores its own predictions**. It
+keeps a **written memory across the whole season** — so in March it remembers what
+it believed in September, and why it changed its mind.
 
-Over a season it tracks its results against two baselines and a human team.
+Not a generic chatbot. The engineering value is three things: a **live data
+pipeline**, a **memory system**, and a **self-evaluation loop**.
 
-> **Resume framing:** autonomous decision agent — LLM reasoning + constrained
-> optimization + weekly feedback loop on live data, evaluated against baselines.
+> **Resume framing:** conversational analyst agent with persistent memory, tool use
+> over live sports data, and self-evaluating predictions across a full season.
 
 ## Status
 🚧 **Phase 0 (Setup) — in progress.** Built in phases; see `CLAUDE.md` for the plan
 and `DECISIONS.md` for the reasoning behind each step.
 
+## How "learning" works here
+**No fine-tuning, no ML models.** The companion learns the way an agent learns:
+fresh data ingested weekly + written memory + scored predictions + opinions updated
+on evidence.
+
 ## Architecture (v1)
 
 ```mermaid
 flowchart TD
-    A[FPL API<br/>read-only, no auth] -->|snapshot| B[(DuckDB<br/>timestamped snapshots)]
-    B --> C[Projection<br/>transparent formula]
-    C --> D[Optimizer<br/>PuLP / linear programming]
-    N[My weekly notes<br/>injuries, press news] --> E
-    D --> E{{Claude agent<br/>tool-use loop}}
-    B --> E
-    E --> F[reports/gw_N.md<br/>transfers, captain, bench, risks]
-    E -->|logged| B
-    B --> G[Streamlit dashboard<br/>squad, report, cumulative chart]
-    F --> G
+    A[football-data.org<br/>fixtures, results, standings] -->|ingest| D[(DuckDB<br/>timestamped snapshots)]
+    B[API-Football<br/>lineups, injuries, stats] -->|ingest| D
+    C[RSS news feeds<br/>feedparser] -->|ingest| D
+    M[memory/<br/>match notes, opinions, discussions<br/>versioned in git] --> E
+    D --> E{{Claude companion<br/>tool-use loop}}
+    E -->|writes| M
+    E --> F[briefings/&lt;date&gt;_match.md<br/>+ logged prediction]
+    F -->|after match| G[review: score predictions,<br/>draft notes, update opinions]
+    G --> M
+    D --> H[Streamlit dashboard<br/>accuracy, opinions, briefings]
+    F --> H
 ```
 _(Diagram will be refined at the end of each phase as pieces get built.)_
 
-## The three commands (target for v1)
+## The commands (target for v1)
 | Command | What it does |
 |---|---|
-| `snapshot` | Fetch live FPL data and append a timestamped copy into DuckDB. |
-| `weekly --gw N` | Run the agent for gameweek N → write `reports/gw_N.md`. |
-| `eval --gw N` | After the gameweek, fetch actual points and update the score tracks. |
+| `python -m companion.chat` | Open a conversation — tools + memory live. |
+| `python -m companion.ingest` | Pull latest fixtures/results/standings/lineups/news into DuckDB. |
+| `python -m companion.briefing --next-barca` | Write a pre-match briefing + log a prediction. |
+| `python -m companion.review --since <date>` | Score predictions, draft match notes, update opinions. |
+| `python -m companion.stats` | Prediction accuracy so far, overall and by competition. |
 
 ## Setup (Windows / PowerShell)
 
@@ -51,24 +61,30 @@ python -m venv .venv
 pip install -r requirements.txt
 pip install -e .
 
-# 3. Add your Anthropic API key
+# 3. Add your API keys (all free)
 copy .env.example .env
-# then edit .env and paste your key from https://console.anthropic.com
+# then edit .env: ANTHROPIC_API_KEY, FOOTBALL_DATA_API_TOKEN, API_FOOTBALL_KEY
 
-# 4. Prove the FPL API works (prints the 5 most expensive players)
-python -m fpl_agent.check_api
+# 4. Prove the football API works (Barcelona's next 5 fixtures + La Liga top 5)
+python -m companion.check_api
 ```
 
-## Tech stack
-Python 3.11+ · FPL API (read-only) · DuckDB · PuLP · Anthropic SDK · Streamlit ·
-pytest · python-dotenv
+## Data sources (free tiers — verified in Phase 1)
+- **football-data.org** — fixtures, results, standings (La Liga + Champions League)
+- **API-Football** (free plan, 100 req/day) — lineups, formations, injuries, stats
+- **RSS news** (Guardian, ESPN FC, …) via `feedparser`
 
 ## Project layout
 ```
-src/fpl_agent/    # the package (all code lives here)
-tests/            # pytest tests for the deterministic parts
-reports/          # generated weekly reports (gw_N.md)
-data/             # DuckDB snapshot file (gitignored)
-CLAUDE.md         # operating rules for the build
-DECISIONS.md      # plain-English reasoning log (interview prep)
+src/companion/      # the package (all code lives here)
+tests/              # pytest tests for the deterministic parts
+memory/             # the versioned "brain": match notes, opinions, discussions
+briefings/          # generated pre-match briefings (with logged predictions)
+data/               # DuckDB snapshot file (gitignored)
+CLAUDE.md           # operating rules for the build
+DECISIONS.md        # plain-English reasoning log (interview prep)
 ```
+
+## Tech stack
+Python 3.11+ · football-data.org · API-Football · feedparser (RSS) · DuckDB ·
+Anthropic SDK · Streamlit · pytest · python-dotenv

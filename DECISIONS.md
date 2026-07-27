@@ -4,11 +4,15 @@
 > **in my own words** explaining what we built and why. Claude does not write these
 > for me — it only fixes my grammar if I ask. If I can't explain a bullet out loud,
 > I go back and ask "why" until I can.
+>
+> Project: **Football Companion Agent** — a conversational La Liga / Champions
+> League analyst friend, centered on FC Barcelona, with live data, memory, and
+> self-scored predictions.
 
 ---
 
 ## Phase 0 — Setup
-_What we built: the empty project skeleton, tooling, and a proof that the FPL API works._
+_The empty project skeleton, tooling, and a smoke test that proves the football API works._
 
 - 
 - 
@@ -18,7 +22,7 @@ _What we built: the empty project skeleton, tooling, and a proof that the FPL AP
 ---
 
 ## Phase 1 — Data layer
-_Snapshotting FPL data into DuckDB. (I personally own the schema choice here.)_
+_Verifying the APIs and ingesting fixtures/results/standings/news into DuckDB. (I own the schema.)_
 
 - 
 - 
@@ -27,8 +31,8 @@ _Snapshotting FPL data into DuckDB. (I personally own the schema choice here.)_
 
 ---
 
-## Phase 2 — Projection + optimizer
-_The points formula and the PuLP optimizer that picks a legal squad._
+## Phase 2 — Memory system
+_The markdown "brain" (match notes, opinions, discussions) + predictions table. (I own the match-note template.)_
 
 - 
 - 
@@ -37,8 +41,8 @@ _The points formula and the PuLP optimizer that picks a legal squad._
 
 ---
 
-## Phase 3 — Agent
-_The Claude tool-use loop and the weekly report. (I personally own the system prompt.)_
+## Phase 3 — The companion
+_The Claude chat + briefing agent and its personality. (I own the system prompt.)_
 
 - 
 - 
@@ -47,8 +51,8 @@ _The Claude tool-use loop and the weekly report. (I personally own the system pr
 
 ---
 
-## Phase 4 — Eval + UI + ship
-_Measuring the agent against baselines, the Streamlit dashboard, and shipping._
+## Phase 4 — Learning loop + ship
+_Scoring predictions, the Streamlit dashboard, and shipping._
 
 - 
 - 

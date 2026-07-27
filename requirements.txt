@@ -1,25 +1,23 @@
-# FPL Manager Agent — Python dependencies
+# Football Companion Agent — Python dependencies
 # Install into a virtual environment:  pip install -r requirements.txt
 #
 # Versions use ">=" (a floor, not a pin) so a clean install on Python 3.12
 # picks up compatible releases. If a future upgrade ever breaks us, we can pin.
 
 # --- Data fetching ---
-requests>=2.31          # simple HTTP client for the read-only FPL API
+requests>=2.31          # simple HTTP client for the football APIs
+feedparser>=6.0         # parses RSS news feeds (Guardian, ESPN, etc.)
 
 # --- Storage ---
 duckdb>=1.1             # single-file analytical database for timestamped snapshots
 
-# --- Optimizer ---
-pulp>=2.8               # linear programming — enforces the FPL squad rules
-
 # --- The agent ---
 anthropic>=0.40         # official Anthropic SDK (tool-use loop with Claude)
-python-dotenv>=1.0      # loads ANTHROPIC_API_KEY from the .env file
+python-dotenv>=1.0      # loads API keys from the .env file
 
 # --- Data handling / UI ---
 pandas>=2.2             # tabular data wrangling between DuckDB and Streamlit
-streamlit>=1.40         # one-page dashboard UI
+streamlit>=1.40         # one-page dashboard UI (Phase 4)
 
 # --- Tests ---
-pytest>=8.0             # tests for the deterministic parts (optimizer, projection math)
+pytest>=8.0             # tests for the deterministic parts (data parsing, memory I/O)
