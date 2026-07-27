@@ -14,10 +14,10 @@
 ## Phase 0 — Setup
 _The empty project skeleton, tooling, and a smoke test that proves the football API works._
 
-- 
-- 
-- 
-- 
+- Built a simple file structure
+- Set up the basic project tooling
+- Got the API key from football-data.org
+- Checked Barça's next five fixtures to confirm the API key is working
 
 ---
 

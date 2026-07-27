@@ -13,8 +13,26 @@
 
 ---
 
-## 2026-07-27 · Set up this learning log
+## 2026-07-27 · Closed Phase 0 (live API proof + recorded decisions)
 **Commit:** _(this one)_
+
+- **What we did:** Ran the smoke test against the *real* football-data.org API (got
+  Barça's actual upcoming fixtures + the La Liga table), Rushikesh wrote his Phase 0
+  bullets in `DECISIONS.md` (I fixed grammar/typos only), and marked Phase 0 complete.
+- **Why:** A phase isn't "done" until the proof runs on real data *and* the reasoning
+  is captured in his own words. I deliberately only fixed grammar — rewriting his
+  bullets would make them mine, and useless to defend in an interview.
+- **Why not alternatives:** I *could* have authored the two missing bullets (venv,
+  secret-safety) for him. Held the line — the project rules say "fix grammar at most"
+  for exactly this reason.
+- **How it could be better:** The standings call returned *last season's* final table
+  (the new season hasn't kicked off). Phase 1 should detect season boundaries so
+  "current standings" means the live season once matches are played.
+
+---
+
+## 2026-07-27 · Set up this learning log
+**Commit:** `15254f3`
 
 - **What we did:** Added `LEARNING_LOG.md` and made "update it after each commit" a
   standing rule in `CLAUDE.md`.
