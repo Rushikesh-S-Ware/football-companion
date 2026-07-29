@@ -13,8 +13,25 @@
 
 ---
 
-## 2026-07-27 · Memory tools + predictions table (Phase 2 core)
+## 2026-07-27 · Decision: use Google Gemini free tier for the agent
 **Commit:** _(this one)_
+
+- **What we did:** Recorded a stack change in `CLAUDE.md` — the Phase 3 companion will
+  run on the **Google Gemini free tier** (`google-genai`, a Gemini Flash model),
+  not the Anthropic/Claude Sonnet the spec originally named.
+- **Why:** Cost. Rushikesh wanted $0 over the ~$2–5/month Claude estimate. Gemini's
+  free tier supports function calling, so the tool-use agent is still buildable.
+- **Why not the alternative:** Paid Claude was cheap and slightly stronger at nuanced
+  tool-use/debate, but "free with an acceptable trade-off" won for a personal project.
+  The deliberate cost decision is itself a good interview story.
+- **How it could be better:** Free-tier rate limits + Google may use free-tier inputs
+  to improve products; a later paid tier (Claude or Gemini paid) removes both. We keep
+  the model wiring as one config value in Phase 3 so switching providers stays easy.
+
+---
+
+## 2026-07-27 · Memory tools + predictions table (Phase 2 core)
+**Commit:** `94da7ee`
 
 - **What we did:** Added `memory.py` (`read_memory` / `write_memory`), `predictions.py`
   (`log_prediction` / `get_predictions`), the `predictions` table in `schema.sql`,

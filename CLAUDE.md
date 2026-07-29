@@ -77,9 +77,13 @@ on evidence. If he asks to "train it" / "make it learn for real", point him here
   snapshot — append, never overwrite.**
 - **Memory**: human-readable markdown in `memory/` (**committed to git — versioned
   brain**) + a predictions table in DuckDB.
-- Agent: **Anthropic Python SDK**, tool-use loop, current Claude Sonnet model
-  (confirm ID in Phase 3). Key from `.env` as `ANTHROPIC_API_KEY`. Chat must
-  **summarize/trim old turns** so context + cost stay controlled.
+- Agent: **tool-use loop** (function calling); chat must **summarize/trim old turns**
+  so context stays controlled. **Model provider: Google Gemini free tier**
+  (`google-genai` SDK, e.g. a Gemini Flash model), key from `.env` as
+  `GEMINI_API_KEY` — Rushikesh chose this over the original Anthropic/Claude Sonnet
+  plan to keep cost at **zero**. Trade-off accepted: free-tier rate limits + inputs
+  may be used by Google to improve products. Wire it in Phase 3 (confirm current
+  free-tier limits + model ID then). *(Do not relitigate back to Anthropic.)*
 - UI: **terminal chat first**; one **Streamlit** page in Phase 4. Tests: **pytest**
   (deterministic parts). Config: python-dotenv. `.gitignore`: `.env`, `data/*.duckdb`.
 - README.md with a mermaid diagram, updated every phase. Code style: type hints,
