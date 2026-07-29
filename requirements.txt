@@ -12,7 +12,7 @@ feedparser>=6.0         # parses RSS news feeds (Guardian, ESPN, etc.)
 duckdb>=1.1             # single-file analytical database for timestamped snapshots
 
 # --- The agent ---
-anthropic>=0.40         # official Anthropic SDK (tool-use loop with Claude)
+google-genai>=1.0       # official Google Gemini SDK (function-calling agent loop)
 python-dotenv>=1.0      # loads API keys from the .env file
 
 # --- Data handling / UI ---

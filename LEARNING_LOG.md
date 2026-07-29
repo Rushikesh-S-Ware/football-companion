@@ -13,8 +13,31 @@
 
 ---
 
-## 2026-07-27 · Decision: use Google Gemini free tier for the agent
+## 2026-07-27 · Leo can talk — chat command + tools on Gemini
 **Commit:** _(this one)_
+
+- **What we did:** Built the companion. `system_prompt.md` (Leo's personality —
+  Rushikesh's Artifact #3), `queries.py` (read fixtures/results/standings/form/news
+  from DuckDB), `tools.py` (Leo's tool set + read/write memory + log_prediction),
+  `agent.py` (Gemini client + system prompt + tools), and `chat.py`
+  (`python -m companion.chat`). **Verified:** Leo pulled Barça's real next fixtures
+  via a tool call and replied in character.
+- **Why:** Gemini's *automatic function calling* runs our Python tool functions for
+  us — no hand-written tool loop. The model is one constant (`gemini-flash-latest`)
+  so switching provider/model later is a one-line change. Tools read the latest
+  DuckDB snapshot (never the live API), matching the cache-everything design.
+- **Why not alternatives:** A manual tool loop (the SDK does it); calling live APIs
+  from chat (rate limits — we read the cached DB instead).
+- **KEY FINDING / how it could be better:** The Gemini **free-tier rate limit is
+  tight** — a couple of tool-using messages returned `429 RESOURCE_EXHAUSTED`. The
+  chat handles it gracefully (session stays alive). Real use needs pacing between
+  messages, or a small paid tier (one-line model swap). Conversation compaction is
+  basic (summarize + restart every 12 turns) — could be smarter later.
+
+---
+
+## 2026-07-27 · Decision: use Google Gemini free tier for the agent
+**Commit:** `a111d30`
 
 - **What we did:** Recorded a stack change in `CLAUDE.md` — the Phase 3 companion will
   run on the **Google Gemini free tier** (`google-genai`, a Gemini Flash model),
