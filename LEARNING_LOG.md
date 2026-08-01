@@ -13,8 +13,29 @@
 
 ---
 
-## 2026-07-27 · Leo can talk — chat command + tools on Gemini
+## 2026-07-27 · Briefing command + dry run — Phase 3 done
 **Commit:** _(this one)_
+
+- **What we did:** Built `briefing.py` (`python -m companion.briefing --next-barca`).
+  It gathers the facts itself (form, standings, news, memory), asks Leo for the whole
+  briefing in **one** Gemini call, parses the structured prediction block, saves
+  `briefings/<date>_<match>.md`, and logs the prediction. **Dry run:** Leo wrote a real
+  Elche vs Barça briefing and logged **AWAY_WIN 0-2 (80%)**.
+- **Why:** One call instead of ~8 tool round-trips keeps us under the free-tier limit;
+  a deterministic regex parse of a fixed prediction block avoids a second call. We
+  **verified grounding**: every stat Leo cited (94 pts, 13th, the 7-2 Newcastle and
+  2-1 Atleti form) traced back to the DB, and he *refused* to invent head-to-head. The
+  golden "never invent" rule held.
+- **Why not alternatives:** Letting Leo tool-call his own data for a briefing (would
+  429 instantly); free-text prediction parsing (a fixed block is far more reliable).
+- **How it could be better:** The prediction parse depends on Leo following the format
+  (fallback: it just isn't logged); could use Gemini structured output; real multi-season
+  head-to-head once we store more than the current snapshot.
+
+---
+
+## 2026-07-27 · Leo can talk — chat command + tools on Gemini
+**Commit:** `e32de8b`
 
 - **What we did:** Built the companion. `system_prompt.md` (Leo's personality —
   Rushikesh's Artifact #3), `queries.py` (read fixtures/results/standings/form/news

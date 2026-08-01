@@ -158,7 +158,9 @@ itself, write notes, update opinions; see its season accuracy; and explain every
 module in plain English. Everything beyond that is phase 2.
 
 ## Current status
-- **Phase 1 (data layer): complete.** `ingest` command + 3 tests; football-data.org
-  + RSS form the live pipeline (API-Football free tier lacks current-season access —
-  parked for phase 2/paid). **Phase 2 (memory system): in progress.** (Pivoted from
-  an earlier FPL-manager concept.) Update this line at the end of each phase.
+- **Phases 0–3 complete.** Data layer (`ingest`), memory system, and the companion
+  (`chat` + `briefing` on the Gemini free tier, `gemini-flash-latest`) are built and
+  verified — Leo pulls real data, holds opinions, and logs predictions (dry run:
+  Elche vs Barça briefing + AWAY_WIN 0-2 prediction logged). **Phase 4 (learning loop
+  — `review` + `stats` + Streamlit + finished README): next.** (Pivoted from an earlier
+  FPL-manager concept.) Update this line at the end of each phase.
