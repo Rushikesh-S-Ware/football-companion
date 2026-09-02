@@ -13,8 +13,29 @@
 
 ---
 
-## 2026-07-27 · Briefing command + dry run — Phase 3 done
+## 2026-07-27 · The learning loop — review + stats commands
 **Commit:** _(this one)_
+
+- **What we did:** `review.py` (scores predictions against results, drafts a match note
+  per scored game) + `stats.py` (accuracy overall + by competition), backed by
+  `score_predictions` / `accuracy_stats` in `predictions.py`, plus 2 tests. **Demo:**
+  since the new season hasn't started, we **backtested** — logged a prediction for
+  Barça's real 2-1 win at Atlético; `review` scored it ✅ correct; `stats` shows 1/1.
+- **Why:** Scoring is fully **deterministic** (no API) — just compare the logged
+  prediction to the stored result. Backtesting against last season's real results
+  (already in the DB) proves the loop today without waiting for August.
+- **Why not alternatives:** (1) Auto-editing `opinions.md` — rejected: opinions must
+  change *deliberately, with a reason*, so review **surfaces** the evidence and a
+  human/Leo updates the take thoughtfully, rather than a script rewriting beliefs.
+  (2) Using Leo/the API to score — unnecessary; it's pure comparison.
+- **How it could be better:** Match prediction↔result by `match_id` (sturdier than
+  parsing the label); confidence-weighted scoring (Brier score); a Leo-assisted
+  "which opinions should shift?" suggestion after each review.
+
+---
+
+## 2026-07-27 · Briefing command + dry run — Phase 3 done
+**Commit:** `28a990d`
 
 - **What we did:** Built `briefing.py` (`python -m companion.briefing --next-barca`).
   It gathers the facts itself (form, standings, news, memory), asks Leo for the whole
