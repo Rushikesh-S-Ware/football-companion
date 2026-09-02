@@ -13,8 +13,26 @@
 
 ---
 
-## 2026-07-27 · The learning loop — review + stats commands
+## 2026-07-27 · Dashboard + finished README — v1 shipped 🏁
 **Commit:** _(this one)_
+
+- **What we did:** `dashboard.py` — a one-page Streamlit app (accuracy metrics +
+  cumulative-accuracy chart + Leo's opinions + the briefing archive). Verified it
+  renders in a browser (showed 1/1, 100%). Rewrote `README.md` as the finished v1
+  (commands, setup with the Gemini + football-data keys, mermaid, memory design,
+  free-tier note) and added a `screenshots/` folder. **Phases 0–4 done — v1 shipped.**
+- **Why:** The dashboard is a read-only view over the DB + memory files (no API) —
+  it turns the honest accuracy number, the opinion log, and the briefings into one
+  shareable page. The README is the portfolio front door.
+- **Why not alternatives:** A heavier web framework (Streamlit makes a dashboard from
+  a plain Python script); deploying to a public host (out of v1 scope — easy later).
+- **How it could be better:** a per-competition accuracy bar, confidence calibration,
+  a real screenshot committed, and a public deploy (e.g. Hugging Face Spaces).
+
+---
+
+## 2026-07-27 · The learning loop — review + stats commands
+**Commit:** `b995c81`
 
 - **What we did:** `review.py` (scores predictions against results, drafts a match note
   per scored game) + `stats.py` (accuracy overall + by competition), backed by

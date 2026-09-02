@@ -1,54 +1,61 @@
-# Football Companion Agent
+# ⚽ Leo — Football Companion
 
-A **conversational football analyst — a *friend* you talk football with**, focused
-on **La Liga and the Champions League, with FC Barcelona at the center**. It chats
-about matches, form, tactics, and formations using **real current data** (never
-invented numbers), writes **pre-match briefings** with a **logged prediction**, and
-after each matchday **reviews what happened and scores its own predictions**. It
-keeps a **written memory across the whole season** — so in March it remembers what
-it believed in September, and why it changed its mind.
+**Leo is a conversational football analyst** you talk football with — focused on
+**La Liga and the Champions League, with FC Barcelona at heart.** He's not a generic
+chatbot: he pulls **real current data** through tools (never invented numbers), keeps
+a **written memory across the whole season**, writes **pre-match briefings with a
+logged prediction**, and after each matchday **scores his own predictions** and
+updates his opinions on the evidence.
 
-Not a generic chatbot. The engineering value is three things: a **live data
-pipeline**, a **memory system**, and a **self-evaluation loop**.
-
-> **Resume framing:** conversational analyst agent with persistent memory, tool use
+> **Resume framing:** a conversational analyst agent with persistent memory, tool use
 > over live sports data, and self-evaluating predictions across a full season.
 
 ## Status
-🚧 **Phase 0 (Setup) — in progress.** Built in phases; see `CLAUDE.md` for the plan
-and `DECISIONS.md` for the reasoning behind each step.
+✅ **v1 complete** — Phases 0–4. Leo chats with real data, writes briefings, logs
+predictions, and scores himself. Built in phases; see [`CLAUDE.md`](CLAUDE.md) for the
+plan, [`DECISIONS.md`](DECISIONS.md) for the reasoning, and
+[`LEARNING_LOG.md`](LEARNING_LOG.md) for the what/why behind every step.
+
+![Leo's dashboard](screenshots/dashboard.png)
+_(Add your own screenshot: run the dashboard and drop the image in `screenshots/`.)_
+
+## What makes it serious (three pillars)
+1. **Live data pipeline** — fixtures/results/standings + news, cached in DuckDB.
+2. **Memory system** — a versioned, human-readable "brain" (`memory/`).
+3. **Self-evaluation loop** — predictions logged *before* matches, scored *after*.
 
 ## How "learning" works here
-**No fine-tuning, no ML models.** The companion learns the way an agent learns:
-fresh data ingested weekly + written memory + scored predictions + opinions updated
-on evidence.
+**No fine-tuning, no ML, no training dataset.** Leo gets sharper the way a real
+analyst does: fresh data each week + a growing written memory + predictions scored
+against reality + opinions updated *with a reason*. In March he still remembers what
+he believed in September, and why it changed.
 
-## Architecture (v1)
+## Architecture
 
 ```mermaid
 flowchart TD
-    A[football-data.org<br/>fixtures, results, standings] -->|ingest| D[(DuckDB<br/>timestamped snapshots)]
-    B[API-Football<br/>lineups, injuries, stats] -->|ingest| D
-    C[RSS news feeds<br/>feedparser] -->|ingest| D
-    M[memory/<br/>match notes, opinions, discussions<br/>versioned in git] --> E
-    D --> E{{Claude companion<br/>tool-use loop}}
-    E -->|writes| M
-    E --> F[briefings/&lt;date&gt;_match.md<br/>+ logged prediction]
-    F -->|after match| G[review: score predictions,<br/>draft notes, update opinions]
-    G --> M
-    D --> H[Streamlit dashboard<br/>accuracy, opinions, briefings]
-    F --> H
+    FD[football-data.org<br/>fixtures · results · standings] -->|ingest| DB[(DuckDB<br/>timestamped snapshots)]
+    RSS[RSS news feeds] -->|ingest| DB
+    MEM[memory/ — markdown brain<br/>opinions · match notes · discussions] --> LEO
+    DB --> LEO{{Leo<br/>Gemini + tools}}
+    LEO -->|writes| MEM
+    LEO --> BR[briefing<br/>+ logged prediction]
+    BR -->|after the match| REV[review — score the prediction,<br/>draft a match note]
+    REV --> DB
+    REV --> MEM
+    DB --> DASH[Streamlit dashboard<br/>accuracy · opinions · briefings]
+    BR --> DASH
 ```
-_(Diagram will be refined at the end of each phase as pieces get built.)_
 
-## The commands (target for v1)
+## The commands
 | Command | What it does |
 |---|---|
-| `python -m companion.chat` | Open a conversation — tools + memory live. |
-| `python -m companion.ingest` | Pull latest fixtures/results/standings/lineups/news into DuckDB. |
-| `python -m companion.briefing --next-barca` | Write a pre-match briefing + log a prediction. |
-| `python -m companion.review --since <date>` | Score predictions, draft match notes, update opinions. |
-| `python -m companion.stats` | Prediction accuracy so far, overall and by competition. |
+| `python -m companion.ingest` | Pull latest fixtures/results/standings/news into DuckDB |
+| `python -m companion.chat` | Talk to Leo — real data, real opinions, live memory |
+| `python -m companion.briefing --next-barca` | Write a pre-match briefing + log a prediction |
+| `python -m companion.review` | Score predictions vs results, draft match notes |
+| `python -m companion.stats` | Prediction accuracy so far (overall + by competition) |
+| `streamlit run src/companion/dashboard.py` | The dashboard (accuracy chart, opinions, briefings) |
 
 ## Setup (Windows / PowerShell)
 
@@ -63,28 +70,42 @@ pip install -e .
 
 # 3. Add your API keys (all free)
 copy .env.example .env
-# then edit .env: ANTHROPIC_API_KEY, FOOTBALL_DATA_API_TOKEN, API_FOOTBALL_KEY
+#    then edit .env:
+#      GEMINI_API_KEY          — https://aistudio.google.com/apikey  (Leo's brain)
+#      FOOTBALL_DATA_API_TOKEN — https://www.football-data.org       (the data)
 
-# 4. Prove the football API works (Barcelona's next 5 fixtures + La Liga top 5)
-python -m companion.check_api
+# 4. Pull the data, then talk to Leo
+python -m companion.ingest
+python -m companion.chat
 ```
 
-## Data sources (free tiers — verified in Phase 1)
-- **football-data.org** — fixtures, results, standings (La Liga + Champions League)
-- **API-Football** (free plan, 100 req/day) — lineups, formations, injuries, stats
-- **RSS news** (Guardian, ESPN FC, …) via `feedparser`
+> **Free-tier note:** Leo runs on Google Gemini's free tier (`gemini-flash-latest`),
+> which is rate-limited — pace your messages. The model is one config value in
+> `agent.py`, so switching to a paid tier (or back to Claude) is a one-line change.
+
+## The memory ("brain")
+Human-readable markdown, committed to git — you can `git diff` how Leo's mind changed:
+- `memory/opinions.md` — living takes, each with evidence + confidence + date.
+- `memory/match_notes/` — one note per reviewed match (from Rushikesh's template).
+- `memory/discussions.md` — a dated log of chats.
+- Plus a `predictions` table in DuckDB (logged before, scored after).
+
+## Data sources (free tiers)
+- **football-data.org** — fixtures, results, standings (La Liga + Champions League).
+- **RSS news** (Guardian, BBC, ESPN) via `feedparser`.
+- *(API-Football's free plan can't access the current season, so structured
+  lineups/injuries are parked for a paid tier / v2 — Leo uses news + your notes.)*
+
+## Tech stack
+Python 3.11+ · football-data.org + RSS · DuckDB · Google Gemini (`google-genai`) ·
+Streamlit · pytest · python-dotenv
 
 ## Project layout
 ```
-src/companion/      # the package (all code lives here)
-tests/              # pytest tests for the deterministic parts
-memory/             # the versioned "brain": match notes, opinions, discussions
-briefings/          # generated pre-match briefings (with logged predictions)
-data/               # DuckDB snapshot file (gitignored)
-CLAUDE.md           # operating rules for the build
-DECISIONS.md        # plain-English reasoning log (interview prep)
+src/companion/     # the package: ingest, queries, tools, agent, chat, briefing,
+                   #   review, stats, dashboard, memory, predictions, db, sources
+tests/             # pytest (data parsing, memory I/O, prediction scoring)
+memory/            # the versioned brain (opinions, match notes, discussions)
+briefings/         # generated pre-match briefings (with logged predictions)
+data/              # DuckDB snapshot file (gitignored)
 ```
-
-## Tech stack
-Python 3.11+ · football-data.org · API-Football · feedparser (RSS) · DuckDB ·
-Anthropic SDK · Streamlit · pytest · python-dotenv
