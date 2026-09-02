@@ -13,8 +13,24 @@
 
 ---
 
-## 2026-07-27 · Web chat — talk to Leo in a browser
+## 2026-07-27 · Auto-retry transient Gemini errors (429 / 503)
 **Commit:** _(this one)_
+
+- **What we did:** Added `agent.send_message()` — it retries transient free-tier
+  errors (429 rate limit, **503 "high demand"/overloaded**, 500) with 3s → 6s → 9s
+  backoff, and wired it into the web + terminal chat with a clearer message.
+- **Why:** The free Gemini tier intermittently returns **503** (Google's servers
+  overloaded — not our quota); a few-second retry usually clears it, so most hiccups
+  now self-heal instead of failing the message.
+- **Why not alternatives:** Leaning on the SDK's built-in retries (didn't cover this);
+  a paid tier (removes deprioritization, but costs money).
+- **How it could be better:** backoff with jitter; a model fallback; streaming replies
+  so the waits feel shorter.
+
+---
+
+## 2026-07-27 · Web chat — talk to Leo in a browser
+**Commit:** `18538ec` (+ `48a9cad` deploy-ready)
 
 - **What we did:** `webapp.py` — a Streamlit **web chat** (`st.chat_input` /
   `st.chat_message`) that reuses the *same* agent (Gemini + tools + system prompt) and

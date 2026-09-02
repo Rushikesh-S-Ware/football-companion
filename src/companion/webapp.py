@@ -95,13 +95,14 @@ if prompt := st.chat_input("Ask Leo about a match, a player, a tactic…"):
     with st.chat_message("user", avatar="🧑"):
         st.markdown(prompt)
     with st.chat_message("assistant", avatar="⚽"):
-        with st.spinner("Leo's thinking…"):
+        with st.spinner("Leo's thinking… (auto-retries if Gemini is busy)"):
             try:
-                reply = st.session_state.chat.send_message(prompt).text
+                reply = agent.send_message(st.session_state.chat, prompt).text
             except Exception as exc:  # noqa: BLE001 — keep the page alive on a hiccup
                 reply = (
-                    "⚠️ Hit a snag — probably the free-tier rate limit. "
-                    f"Wait ~30s and try again.\n\n`{exc}`"
+                    "⚠️ Gemini's free tier is busy or rate-limited right now "
+                    "(it gets deprioritized when demand spikes). Give it a minute and "
+                    f"resend.\n\n`{exc}`"
                 )
         st.markdown(reply)
     st.session_state.history.append(("leo", reply))
@@ -110,8 +111,9 @@ if prompt := st.chat_input("Ask Leo about a match, a player, a tactic…"):
 if st.session_state.get("history"):
     if st.button("💾 Save this chat to Leo's memory"):
         try:
-            note = st.session_state.chat.send_message(
-                "Jot 2-3 bullets of what we discussed for your memory. No preamble."
+            note = agent.send_message(
+                st.session_state.chat,
+                "Jot 2-3 bullets of what we discussed for your memory. No preamble.",
             ).text.strip()
         except Exception:  # noqa: BLE001
             note = "\n".join(f"- {who}: {text}" for who, text in st.session_state.history[-6:])

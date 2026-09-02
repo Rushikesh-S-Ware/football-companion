@@ -74,7 +74,7 @@ def main() -> None:
             if user.lower() in ("exit", "quit", "bye"):
                 break
             try:
-                reply = chat.send_message(user)
+                reply = agent.send_message(chat, user)
                 print(f"\nLeo: {reply.text}\n")
                 exchanges += 1
                 if exchanges % COMPACT_EVERY == 0:

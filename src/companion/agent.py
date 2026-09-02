@@ -8,6 +8,7 @@ the SDK runs it and feeds the result back — we don't hand-write the tool loop.
 from __future__ import annotations
 
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,11 @@ from google import genai
 from google.genai import types
 
 from .tools import TOOLS
+
+# Free-tier Gemini sometimes returns transient errors: 429 (rate limit), 503
+# (model overloaded / high demand), or 500. These usually clear in a few seconds,
+# so we retry before surfacing them.
+_TRANSIENT = ("429", "RESOURCE_EXHAUSTED", "503", "UNAVAILABLE", "500", "overloaded", "high demand")
 
 # The model that works on the free tier (see LEARNING_LOG). Kept as one constant so
 # switching providers/models later is a one-line change.
@@ -48,3 +54,23 @@ def _config() -> types.GenerateContentConfig:
 def new_chat(client: genai.Client, history: list | None = None):
     """Start a fresh chat session with Leo (optionally seeded with prior history)."""
     return client.chats.create(model=MODEL, config=_config(), history=history or [])
+
+
+def send_message(chat, text: str, retries: int = 3, base_delay: float = 3.0):
+    """Send a message to Leo, retrying transient free-tier errors (429/503/500).
+
+    Waits 3s, then 6s, then 9s between tries. Non-transient errors (a bad key, a
+    real bug) are raised immediately so they aren't masked.
+    """
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        try:
+            return chat.send_message(text)
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            transient = any(token in str(exc) for token in _TRANSIENT)
+            if transient and attempt < retries - 1:
+                time.sleep(base_delay * (attempt + 1))
+                continue
+            raise
+    raise last_error  # pragma: no cover
