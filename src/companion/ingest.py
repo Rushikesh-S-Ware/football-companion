@@ -29,15 +29,14 @@ COMPETITIONS = ["PD", "CL"]
 def run_ingest(db_path=DEFAULT_DB_PATH, light: bool = False) -> dict[str, object]:
     """Do one ingest. Returns a {step: count-or-error} summary dict.
 
-    `light=True` fetches only La Liga (skips Champions League + news) — used for the
-    web app's cold-start load so the page opens fast. The full `ingest` command still
-    pulls everything.
+    `light=True` keeps BOTH La Liga and the Champions League but skips the RSS news
+    feeds (the slow part — 3 external sites) — used for the web app's cold-start so the
+    page opens fast. The full `ingest` command also pulls news.
     """
     load_dotenv()
     fd_token = os.getenv("FOOTBALL_DATA_API_TOKEN")
     af_key = os.getenv("API_FOOTBALL_KEY")
     fetched_at = now_utc()
-    competitions = ["PD"] if light else COMPETITIONS
 
     # API-Football's FREE plan cannot access the current season (only ~2022–2024),
     # so it can't give us live lineups/injuries. We leave it OFF by default to save
@@ -52,7 +51,7 @@ def run_ingest(db_path=DEFAULT_DB_PATH, light: bool = False) -> dict[str, object
     # --- football-data.org: matches + standings (also feeds the teams table) ---
     match_payloads: list[dict] = []
     standings_payloads: list[dict] = []
-    for code in competitions:
+    for code in COMPETITIONS:
         try:
             payload = sources.fetch_competition_matches(fd_token, code)
             match_payloads.append(payload)
