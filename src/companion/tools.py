@@ -1,8 +1,8 @@
-"""Leo's tools: the functions the Gemini agent is allowed to call.
+"""Leo's tools: the functions the agent is allowed to call.
 
 These are thin, model-friendly wrappers (clean signatures + clear docstrings) over
-our query / memory / prediction code. The Gemini SDK reads each function's docstring
-as the tool description and its type hints as the parameter schema, so keep both tidy.
+our query / memory / prediction code. The agent builds each tool's schema from the
+function's docstring (description) and type hints (parameters), so keep both tidy.
 """
 
 from __future__ import annotations

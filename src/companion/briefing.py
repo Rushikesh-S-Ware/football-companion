@@ -14,8 +14,6 @@ import re
 import sys
 from datetime import datetime, timezone
 
-from google.genai import types
-
 from . import agent, queries
 from .db import connect
 from .memory import read_memory
@@ -143,14 +141,9 @@ def run_briefing(match_arg: str | None = None) -> None:
 
     client = agent.make_client()
     try:
-        resp = client.models.generate_content(
-            model=agent.MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(system_instruction=agent.load_system_prompt()),
-        )
-        briefing_text = resp.text
+        briefing_text = agent.generate(client, prompt)
     except Exception as exc:  # noqa: BLE001
-        print(f"[Gemini error — probably the free-tier rate limit: {exc}]")
+        print(f"[Model error — probably a rate limit; try again in a moment: {exc}]")
         return
 
     # Save the briefing file.

@@ -13,8 +13,29 @@
 
 ---
 
-## 2026-07-27 · Faster cold start — light load for the web app
+## 2026-07-27 · Switch Leo's brain to Groq (fast Llama)
 **Commit:** _(this one)_
+
+- **What we did:** Rewired the agent from Google Gemini to **Groq**
+  (`llama-3.3-70b-versatile`). New `agent.py` drives an **OpenAI-style tool loop by
+  hand** (Groq doesn't auto-call): it builds each tool's schema from our functions'
+  type hints + docstrings, runs the `tool_calls`, feeds results back, and loops.
+  `briefing` uses `agent.generate()` (one-shot); `chat`/`webapp` use
+  `agent.send_message()` (returns a string). Deps: `google-genai` → `groq`; key is
+  now `GROQ_API_KEY`. Leo's personality, tools, and memory are unchanged.
+- **Why:** Gemini's free tier was slow and threw 503s under load; Groq runs Llama on
+  very fast hardware (free tier), so replies come back much quicker. Only the *engine*
+  changed — the model is one constant, so swapping providers stays easy.
+- **Why not alternatives:** Cerebras / Mistral (similar; Groq is fastest + has the
+  clearest tool-use docs); staying on Gemini (too slow for real use).
+- **How it could be better:** Llama is a touch less nuanced than Gemini/Claude on
+  subtle reasoning (fine for grounded tool-chat); stream replies; add a thin
+  provider-abstraction so the swap is a single flag.
+
+---
+
+## 2026-07-27 · Faster cold start — light load for the web app
+**Commit:** `2a3df17`
 
 - **What we did:** `run_ingest(light=True)` fetches **only La Liga** (skips Champions
   League matches + RSS news); the web app's cold-start now uses it. Verified: light

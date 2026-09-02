@@ -12,7 +12,7 @@ feedparser>=6.0         # parses RSS news feeds (Guardian, ESPN, etc.)
 duckdb>=1.1             # single-file analytical database for timestamped snapshots
 
 # --- The agent ---
-google-genai>=1.0       # official Google Gemini SDK (function-calling agent loop)
+groq>=0.13              # Groq SDK — fast Llama inference with OpenAI-style tool calling
 python-dotenv>=1.0      # loads API keys from the .env file
 
 # --- Data handling / UI ---

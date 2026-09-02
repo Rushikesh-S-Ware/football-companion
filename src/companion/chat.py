@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import sys
 
-from google.genai import types
-
 from . import agent
 from .memory import write_memory
 
@@ -30,15 +28,16 @@ COMPACT_EVERY = 12
 def _compact(client, chat):
     """Summarize the conversation so far and restart with that summary as context."""
     try:
-        summary = chat.send_message(
+        summary = agent.send_message(
+            chat,
             "Summarize our conversation so far in a few sentences so we can continue "
-            "with less context. Just the summary, no preamble."
-        ).text.strip()
+            "with less context. Just the summary, no preamble.",
+        ).strip()
     except Exception:
         return chat  # if it fails, just keep the existing chat
     seed = [
-        types.Content(role="user", parts=[types.Part(text=f"Summary of our chat so far: {summary}")]),
-        types.Content(role="model", parts=[types.Part(text="Got it — I remember where we're at.")]),
+        {"role": "user", "content": f"Summary of our chat so far: {summary}"},
+        {"role": "assistant", "content": "Got it — I remember where we're at."},
     ]
     return agent.new_chat(client, history=seed)
 
@@ -46,10 +45,11 @@ def _compact(client, chat):
 def _save_discussion(chat) -> None:
     """Write a short end-of-session note to discussions.md."""
     try:
-        note = chat.send_message(
+        note = agent.send_message(
+            chat,
             "Before we go, jot 2-3 short bullet points of what we discussed today for "
-            "your memory — anything I told you, or any take that shifted. No preamble."
-        ).text.strip()
+            "your memory — anything I told you, or any take that shifted. No preamble.",
+        ).strip()
     except Exception:
         note = "Chatted about football (summary unavailable)."
     write_memory("discussion", note)
@@ -75,7 +75,7 @@ def main() -> None:
                 break
             try:
                 reply = agent.send_message(chat, user)
-                print(f"\nLeo: {reply.text}\n")
+                print(f"\nLeo: {reply}\n")
                 exchanges += 1
                 if exchanges % COMPACT_EVERY == 0:
                     chat = _compact(client, chat)

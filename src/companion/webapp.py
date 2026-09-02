@@ -1,7 +1,7 @@
 """Leo — web chat.  Run locally with:  streamlit run src/companion/webapp.py
 
 Talk to Leo in your browser. It's the SAME Leo as the terminal chat — same brain
-(memory + tools + Gemini), so he pulls real data, holds opinions, and remembers what
+(memory + tools + Groq), so he pulls real data, holds opinions, and remembers what
 you tell him. The sidebar shows his live accuracy and current opinions.
 
 This file is also the entry point for a Streamlit Cloud deploy: it bootstraps the
@@ -27,7 +27,7 @@ st.set_page_config(page_title="Chat with Leo", page_icon="⚽", layout="centered
 # variables so the existing os.getenv-based code (agent, ingest) works unchanged.
 # Locally there's no secrets file, so this quietly no-ops and .env is used instead.
 try:
-    for _key in ("GEMINI_API_KEY", "FOOTBALL_DATA_API_TOKEN", "API_FOOTBALL_KEY"):
+    for _key in ("GROQ_API_KEY", "FOOTBALL_DATA_API_TOKEN", "API_FOOTBALL_KEY", "GEMINI_API_KEY"):
         if _key in st.secrets and not os.getenv(_key):
             os.environ[_key] = str(st.secrets[_key])
 except Exception:  # noqa: BLE001 — no secrets file (running locally with .env)
@@ -95,14 +95,13 @@ if prompt := st.chat_input("Ask Leo about a match, a player, a tactic…"):
     with st.chat_message("user", avatar="🧑"):
         st.markdown(prompt)
     with st.chat_message("assistant", avatar="⚽"):
-        with st.spinner("Leo's thinking… (auto-retries if Gemini is busy)"):
+        with st.spinner("Leo's thinking… (auto-retries if the model is busy)"):
             try:
-                reply = agent.send_message(st.session_state.chat, prompt).text
+                reply = agent.send_message(st.session_state.chat, prompt)
             except Exception as exc:  # noqa: BLE001 — keep the page alive on a hiccup
                 reply = (
-                    "⚠️ Gemini's free tier is busy or rate-limited right now "
-                    "(it gets deprioritized when demand spikes). Give it a minute and "
-                    f"resend.\n\n`{exc}`"
+                    "⚠️ The model is busy or rate-limited right now. Give it a moment "
+                    f"and resend.\n\n`{exc}`"
                 )
         st.markdown(reply)
     st.session_state.history.append(("leo", reply))
@@ -114,7 +113,7 @@ if st.session_state.get("history"):
             note = agent.send_message(
                 st.session_state.chat,
                 "Jot 2-3 bullets of what we discussed for your memory. No preamble.",
-            ).text.strip()
+            ).strip()
         except Exception:  # noqa: BLE001
             note = "\n".join(f"- {who}: {text}" for who, text in st.session_state.history[-6:])
         write_memory("discussion", note)
