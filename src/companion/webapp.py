@@ -1,23 +1,61 @@
-"""Leo — web chat.  Run with:  streamlit run src/companion/webapp.py
+"""Leo — web chat.  Run locally with:  streamlit run src/companion/webapp.py
 
 Talk to Leo in your browser. It's the SAME Leo as the terminal chat — same brain
 (memory + tools + Gemini), so he pulls real data, holds opinions, and remembers what
 you tell him. The sidebar shows his live accuracy and current opinions.
+
+This file is also the entry point for a Streamlit Cloud deploy: it bootstraps the
+import path, reads keys from Streamlit secrets, and pulls data on a fresh host.
 """
 
 from __future__ import annotations
 
+import os
+import sys
 from pathlib import Path
+
+# Make the `companion` package importable whether it's pip-installed (local dev) or
+# not (a cloud host that only ran `pip install -r requirements.txt`). webapp.py lives
+# at src/companion/webapp.py, so parents[1] is `src/`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import streamlit as st
 
+st.set_page_config(page_title="Chat with Leo", page_icon="⚽", layout="centered")
+
+# On a cloud host there is no .env — bridge Streamlit secrets into environment
+# variables so the existing os.getenv-based code (agent, ingest) works unchanged.
+# Locally there's no secrets file, so this quietly no-ops and .env is used instead.
+try:
+    for _key in ("GEMINI_API_KEY", "FOOTBALL_DATA_API_TOKEN", "API_FOOTBALL_KEY"):
+        if _key in st.secrets and not os.getenv(_key):
+            os.environ[_key] = str(st.secrets[_key])
+except Exception:  # noqa: BLE001 — no secrets file (running locally with .env)
+    pass
+
 from companion import agent
+from companion.db import connect, init_schema
 from companion.memory import write_memory
 from companion.predictions import accuracy_stats
 
 OPINIONS = Path(__file__).resolve().parents[2] / "memory" / "opinions.md"
 
-st.set_page_config(page_title="Chat with Leo", page_icon="⚽", layout="centered")
+
+@st.cache_resource(show_spinner="Loading the latest football data…")
+def _ensure_data() -> bool:
+    """A fresh host starts with an empty database — pull data once on first load."""
+    con = connect()
+    init_schema(con)
+    empty = con.execute("SELECT count(*) FROM matches").fetchone()[0] == 0
+    con.close()
+    if empty and os.getenv("FOOTBALL_DATA_API_TOKEN"):
+        from companion.ingest import run_ingest
+
+        run_ingest()
+    return True
+
+
+_ensure_data()
 
 # ---- Sidebar: Leo's live stats + opinions -----------------------------------
 with st.sidebar:
