@@ -1,49 +1,33 @@
-"""Leo the companion — the agent brain (Groq / Llama, OpenAI-style tool calling).
+"""Leo the companion — the agent brain (Google Gemini, automatic function calling).
 
-Groq runs open Llama models on very fast hardware, so replies come back quickly. Unlike
-Gemini's *automatic* function calling, here we drive the tool loop ourselves: the model
-returns `tool_calls`, we run the matching Python function, feed the result back, and
-repeat until it answers. The model is one constant (`MODEL`) so swapping provider/model
-stays a small change.
+We went back to Gemini after Groq's free-tier model kept *inventing* results instead
+of calling tools. Gemini reliably uses the tools and stays grounded — slower, but
+honest, which is the whole point of this project.
+
+We pass our Python tool functions straight to the SDK. With Python callables as tools,
+Gemini does *automatic function calling*: when Leo decides to use a tool, the SDK runs
+it and feeds the result back — we don't hand-write the tool loop. The model is one
+constant (`MODEL`) so swapping provider/model stays a small change.
 """
 
 from __future__ import annotations
 
 import datetime as dt
-import inspect
-import json
 import os
 import time
 from pathlib import Path
-from typing import get_type_hints
 
 from dotenv import load_dotenv
-from groq import Groq
+from google import genai
+from google.genai import types
 
 from .tools import TOOLS
 
-# Ordered by tool-use RELIABILITY (not raw speed): a bigger model is far less likely
-# to invent facts instead of calling a tool. The resolver picks the first one the
-# account actually has; the tiny 8b model is a last resort only. Grounding > speed.
-_PREFERRED_MODELS = [
-    "llama-3.3-70b-versatile",
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "moonshotai/kimi-k2-instruct",
-    "qwen/qwen3-32b",
-    "llama-3.1-8b-instant",  # fast, but weak at tools — last resort
-]
-MODEL = _PREFERRED_MODELS[0]
-_resolved_model: str | None = None
-
+MODEL = "gemini-flash-latest"
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent / "system_prompt.md"
 
 # Transient errors worth a retry (rate limit / overload / server blip).
-_TRANSIENT = ("rate limit", "429", "503", "overload", "unavailable", "500", "try again")
-_MAX_TOOL_STEPS = 6  # safety cap on the tool-call loop
-
-# name -> the Python function to run when the model calls that tool.
-DISPATCH = {func.__name__: func for func in TOOLS}
+_TRANSIENT = ("429", "resource_exhausted", "503", "unavailable", "500", "overload", "try again")
 
 
 def load_system_prompt() -> str:
@@ -53,9 +37,8 @@ def load_system_prompt() -> str:
 def _runtime_guard() -> str:
     """A blunt, always-on rule appended to the system prompt: use tools, never invent.
 
-    Small models will happily make up scorelines and players from their training. This
-    forces the discipline the whole project depends on, and dates it so 'recent matches'
-    is interpreted correctly.
+    Dates the conversation so 'recent matches' is read correctly, and makes the
+    grounding discipline explicit so Leo never fabricates a scoreline or a player.
     """
     today = dt.date.today().isoformat()
     return (
@@ -73,161 +56,70 @@ def _runtime_guard() -> str:
     )
 
 
-def make_client() -> Groq:
-    """Build a Groq client from GROQ_API_KEY in .env."""
+def make_client() -> genai.Client:
+    """Build a Gemini client from GEMINI_API_KEY in .env."""
     load_dotenv()
-    key = os.getenv("GROQ_API_KEY")
+    key = os.getenv("GEMINI_API_KEY")
     if not key:
         raise SystemExit(
-            "No GROQ_API_KEY found in .env. Get a free key at "
-            "https://console.groq.com/keys (see .env.example)."
+            "No GEMINI_API_KEY found in .env. Get a free key at "
+            "https://aistudio.google.com/apikey (see .env.example)."
         )
-    return Groq(api_key=key)
+    return genai.Client(api_key=key)
 
 
-def _tool_schema(func) -> dict:
-    """Build an OpenAI/Groq tool schema from a Python function's signature + docstring.
-
-    We resolve type hints (get_type_hints handles the stringified annotations from
-    `from __future__ import annotations`), map int->integer / everything else->string,
-    and mark parameters without a default as required.
-    """
-    sig = inspect.signature(func)
-    hints = get_type_hints(func)
-    properties, required = {}, []
-    for name, param in sig.parameters.items():
-        annotation = hints.get(name, str)
-        properties[name] = {"type": "integer" if annotation is int else "string"}
-        if param.default is inspect.Parameter.empty:
-            required.append(name)
-    description = " ".join((func.__doc__ or "").split())
-    return {
-        "type": "function",
-        "function": {
-            "name": func.__name__,
-            "description": description,
-            "parameters": {"type": "object", "properties": properties, "required": required},
-        },
-    }
+def _config() -> types.GenerateContentConfig:
+    return types.GenerateContentConfig(
+        system_instruction=load_system_prompt() + _runtime_guard(),
+        tools=TOOLS,
+    )
 
 
-TOOL_SCHEMAS = [_tool_schema(func) for func in TOOLS]
+def _to_gemini_history(history: list | None) -> list:
+    """Convert our simple [{'role','content'}] history into Gemini Content objects."""
+    out = []
+    for msg in history or []:
+        role = "model" if msg.get("role") == "assistant" else "user"
+        out.append(types.Content(role=role, parts=[types.Part(text=msg.get("content", ""))]))
+    return out
 
 
-def resolve_model(client: Groq) -> str:
-    """Pick a model this account actually has access to (cached after the first call).
-
-    Tries the preferred list, then falls back to any chat model the account exposes,
-    skipping audio / safety / embedding models. This keeps Leo working even when Groq
-    renames or gates models.
-    """
-    global _resolved_model
-    if _resolved_model:
-        return _resolved_model
-    try:
-        available = {m.id for m in client.models.list().data}
-    except Exception:  # noqa: BLE001 — can't list; just try the default
-        _resolved_model = MODEL
-        return _resolved_model
-    for name in _PREFERRED_MODELS:
-        if name in available:
-            _resolved_model = name
-            return name
-    for model_id in available:  # last resort: any non-audio/guard model
-        if not any(x in model_id.lower() for x in ("whisper", "tts", "guard", "embed")):
-            _resolved_model = model_id
-            return model_id
-    _resolved_model = MODEL
-    return _resolved_model
+def new_chat(client: genai.Client, history: list | None = None):
+    """Start a fresh chat session with Leo (optionally seeded with prior history)."""
+    return client.chats.create(model=MODEL, config=_config(), history=_to_gemini_history(history))
 
 
-def _run_tool(name: str, args: dict) -> str:
-    """Execute one tool call and return its result as a string."""
-    func = DISPATCH.get(name)
-    if func is None:
-        return f"(unknown tool: {name})"
-    try:
-        return str(func(**args))
-    except Exception as exc:  # noqa: BLE001 — hand the error back so Leo can recover
-        return f"(tool error: {exc})"
+def _is_transient(exc: Exception) -> bool:
+    return any(token in str(exc).lower() for token in _TRANSIENT)
 
 
-def _complete(client: Groq, messages: list, use_tools: bool, retries: int = 3, base_delay: float = 2.0):
-    """Call Groq once, retrying transient errors (429/503/500) with backoff."""
-    model = resolve_model(client)
+def send_message(chat, text: str, retries: int = 3, base_delay: float = 3.0) -> str:
+    """Send a message to Leo, retrying transient errors, and return his reply as text."""
+    last_error: Exception | None = None
     for attempt in range(retries):
         try:
-            kwargs: dict = {"model": model, "messages": messages, "temperature": 0.7}
-            if use_tools:
-                kwargs["tools"] = TOOL_SCHEMAS
-                kwargs["tool_choice"] = "auto"
-            return client.chat.completions.create(**kwargs)
+            return chat.send_message(text).text or ""
         except Exception as exc:  # noqa: BLE001
-            transient = any(token in str(exc).lower() for token in _TRANSIENT)
-            if transient and attempt < retries - 1:
+            last_error = exc
+            if _is_transient(exc) and attempt < retries - 1:
                 time.sleep(base_delay * (attempt + 1))
                 continue
             raise
+    raise last_error  # pragma: no cover
 
 
-class LeoChat:
-    """A running conversation with Leo — holds the message history and drives the tools."""
-
-    def __init__(self, client: Groq, history: list | None = None):
-        self.client = client
-        self.messages: list = [{"role": "system", "content": load_system_prompt() + _runtime_guard()}]
-        if history:
-            self.messages.extend(history)
-
-    def send(self, text: str) -> str:
-        """Send a user message; run any tool calls; return Leo's final reply text."""
-        self.messages.append({"role": "user", "content": text})
-        for _ in range(_MAX_TOOL_STEPS):
-            message = _complete(self.client, self.messages, use_tools=True).choices[0].message
-            if message.tool_calls:
-                # Record the assistant's tool request, then each tool's result.
-                self.messages.append(
-                    {
-                        "role": "assistant",
-                        "content": message.content or "",
-                        "tool_calls": [
-                            {
-                                "id": tc.id,
-                                "type": "function",
-                                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
-                            }
-                            for tc in message.tool_calls
-                        ],
-                    }
-                )
-                for tc in message.tool_calls:
-                    try:
-                        args = json.loads(tc.function.arguments or "{}")
-                    except json.JSONDecodeError:
-                        args = {}
-                    self.messages.append(
-                        {"role": "tool", "tool_call_id": tc.id, "content": _run_tool(tc.function.name, args)}
-                    )
-                continue  # loop again so Leo can use the results
-            self.messages.append({"role": "assistant", "content": message.content or ""})
-            return message.content or ""
-        return "(I got a bit tangled using my tools — try asking that a different way.)"
-
-
-def new_chat(client: Groq, history: list | None = None) -> LeoChat:
-    """Start a fresh conversation with Leo (optionally seeded with prior history)."""
-    return LeoChat(client, history=history)
-
-
-def send_message(chat: LeoChat, text: str) -> str:
-    """Send a message to Leo and get his reply as a string."""
-    return chat.send(text)
-
-
-def generate(client: Groq, prompt: str) -> str:
+def generate(client: genai.Client, prompt: str, retries: int = 3, base_delay: float = 3.0) -> str:
     """One-shot generation in Leo's voice, no tools (used by the briefing command)."""
-    messages = [
-        {"role": "system", "content": load_system_prompt()},
-        {"role": "user", "content": prompt},
-    ]
-    return _complete(client, messages, use_tools=False).choices[0].message.content or ""
+    config = types.GenerateContentConfig(system_instruction=load_system_prompt() + _runtime_guard())
+    last_error: Exception | None = None
+    for attempt in range(retries):
+        try:
+            resp = client.models.generate_content(model=MODEL, contents=prompt, config=config)
+            return resp.text or ""
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+            if _is_transient(exc) and attempt < retries - 1:
+                time.sleep(base_delay * (attempt + 1))
+                continue
+            raise
+    raise last_error  # pragma: no cover

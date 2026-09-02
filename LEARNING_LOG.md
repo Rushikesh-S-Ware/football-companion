@@ -13,8 +13,27 @@
 
 ---
 
-## 2026-07-27 · Grounding fix — the 8b model was inventing facts
+## 2026-07-27 · Revert to Gemini (grounded) + found the real key bug
 **Commit:** _(this one)_
+
+- **What we did:** Groq's free model kept **inventing** results (no tool use), so we
+  reverted the agent to **Gemini** (grounded, automatic function calling) behind the
+  same interface, keeping the hard no-invention guard. **Verified locally:** Leo
+  refused to fabricate and honestly said he couldn't fetch data; the tools return real
+  results. **Root-caused the auth flakiness:** the provided `GEMINI_API_KEY`
+  (`AQ.Ab8…`) is a **short-lived / OAuth-style token, not a permanent AI Studio API
+  key** (`AIzaSy…`) — it worked briefly, then returned `401 UNAUTHENTICATED`.
+- **Why:** Grounding > speed; Gemini reliably calls the tools. The 503s/401s traced
+  back to the wrong *credential type*, not the code.
+- **Why not alternatives:** Groq (its free model fabricated); forcing tools blindly
+  (couldn't verify without a working key).
+- **How it could be better:** warn at startup if the key isn't a proper API key;
+  support multiple providers behind one flag so swapping is trivial.
+
+---
+
+## 2026-07-27 · Grounding fix — the 8b model was inventing facts
+**Commit:** `27e4d7c`
 
 - **What we did:** The Groq switch defaulted to `llama-3.1-8b-instant`, which
   **hallucinated** match results and players instead of calling tools (Rushikesh
