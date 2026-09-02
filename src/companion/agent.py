@@ -21,8 +21,22 @@ from groq import Groq
 
 from .tools import TOOLS
 
-# A fast, tool-capable Llama model on Groq's free tier.
-MODEL = "llama-3.3-70b-versatile"
+# A fast, tool-capable model on Groq's free tier. If it's not available on the
+# account, we auto-pick the best available one (see resolve_model) — Groq changes
+# its model lineup, and bigger models aren't always on the free tier.
+MODEL = "llama-3.1-8b-instant"
+# Tried in order; first one the account actually has wins. All support tool calls.
+_PREFERRED_MODELS = [
+    MODEL,
+    "llama-3.3-70b-versatile",
+    "openai/gpt-oss-20b",
+    "openai/gpt-oss-120b",
+    "moonshotai/kimi-k2-instruct",
+    "qwen/qwen3-32b",
+    "llama3-8b-8192",
+]
+_resolved_model: str | None = None
+
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent / "system_prompt.md"
 
 # Transient errors worth a retry (rate limit / overload / server blip).
@@ -78,6 +92,33 @@ def _tool_schema(func) -> dict:
 TOOL_SCHEMAS = [_tool_schema(func) for func in TOOLS]
 
 
+def resolve_model(client: Groq) -> str:
+    """Pick a model this account actually has access to (cached after the first call).
+
+    Tries the preferred list, then falls back to any chat model the account exposes,
+    skipping audio / safety / embedding models. This keeps Leo working even when Groq
+    renames or gates models.
+    """
+    global _resolved_model
+    if _resolved_model:
+        return _resolved_model
+    try:
+        available = {m.id for m in client.models.list().data}
+    except Exception:  # noqa: BLE001 — can't list; just try the default
+        _resolved_model = MODEL
+        return _resolved_model
+    for name in _PREFERRED_MODELS:
+        if name in available:
+            _resolved_model = name
+            return name
+    for model_id in available:  # last resort: any non-audio/guard model
+        if not any(x in model_id.lower() for x in ("whisper", "tts", "guard", "embed")):
+            _resolved_model = model_id
+            return model_id
+    _resolved_model = MODEL
+    return _resolved_model
+
+
 def _run_tool(name: str, args: dict) -> str:
     """Execute one tool call and return its result as a string."""
     func = DISPATCH.get(name)
@@ -91,9 +132,10 @@ def _run_tool(name: str, args: dict) -> str:
 
 def _complete(client: Groq, messages: list, use_tools: bool, retries: int = 3, base_delay: float = 2.0):
     """Call Groq once, retrying transient errors (429/503/500) with backoff."""
+    model = resolve_model(client)
     for attempt in range(retries):
         try:
-            kwargs: dict = {"model": MODEL, "messages": messages, "temperature": 0.7}
+            kwargs: dict = {"model": model, "messages": messages, "temperature": 0.7}
             if use_tools:
                 kwargs["tools"] = TOOL_SCHEMAS
                 kwargs["tool_choice"] = "auto"
