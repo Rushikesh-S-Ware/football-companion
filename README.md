@@ -51,7 +51,8 @@ flowchart TD
 | Command | What it does |
 |---|---|
 | `python -m companion.ingest` | Pull latest fixtures/results/standings/news into DuckDB |
-| `python -m companion.chat` | Talk to Leo — real data, real opinions, live memory |
+| `python -m companion.chat` | Talk to Leo in the terminal — real data, real opinions, live memory |
+| `streamlit run src/companion/webapp.py` | 💬 Talk to Leo in your **browser** (web chat + live stats) |
 | `python -m companion.briefing --next-barca` | Write a pre-match briefing + log a prediction |
 | `python -m companion.review` | Score predictions vs results, draft match notes |
 | `python -m companion.stats` | Prediction accuracy so far (overall + by competition) |

@@ -13,8 +13,28 @@
 
 ---
 
-## 2026-07-27 · Dashboard + finished README — v1 shipped 🏁
+## 2026-07-27 · Web chat — talk to Leo in a browser
 **Commit:** _(this one)_
+
+- **What we did:** `webapp.py` — a Streamlit **web chat** (`st.chat_input` /
+  `st.chat_message`) that reuses the *same* agent (Gemini + tools + system prompt) and
+  the *same* memory as the terminal chat, with a sidebar showing live accuracy + Leo's
+  opinions and a "💾 Save chat to memory" button. Verified in-browser: renders, accepts
+  input, Leo processes.
+- **Why:** The platform is just a front door — the chat plugs into Leo's existing brain
+  (agent + memory), so there was nothing new to build there; Streamlit turns a Python
+  script into a browser chat. Saved chats + memory work identically to the terminal.
+- **Why not alternatives:** A native mobile app (huge, off our Python/Streamlit stack) —
+  a *deployed* web page opens in a phone browser and can be "added to home screen,"
+  covering the mobile need pragmatically. WhatsApp/Telegram bots stay a v2 idea.
+- **How it could be better:** Deploy to Streamlit Community Cloud / Hugging Face Spaces
+  for a public URL (phone access) — needs the shared-key + data-on-host wrinkles sorted;
+  stream Leo's reply token-by-token.
+
+---
+
+## 2026-07-27 · Dashboard + finished README — v1 shipped 🏁
+**Commit:** `badd593`
 
 - **What we did:** `dashboard.py` — a one-page Streamlit app (accuracy metrics +
   cumulative-accuracy chart + Leo's opinions + the briefing archive). Verified it
