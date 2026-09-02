@@ -9,6 +9,7 @@ stays a small change.
 
 from __future__ import annotations
 
+import datetime as dt
 import inspect
 import json
 import os
@@ -21,20 +22,18 @@ from groq import Groq
 
 from .tools import TOOLS
 
-# A fast, tool-capable model on Groq's free tier. If it's not available on the
-# account, we auto-pick the best available one (see resolve_model) — Groq changes
-# its model lineup, and bigger models aren't always on the free tier.
-MODEL = "llama-3.1-8b-instant"
-# Tried in order; first one the account actually has wins. All support tool calls.
+# Ordered by tool-use RELIABILITY (not raw speed): a bigger model is far less likely
+# to invent facts instead of calling a tool. The resolver picks the first one the
+# account actually has; the tiny 8b model is a last resort only. Grounding > speed.
 _PREFERRED_MODELS = [
-    MODEL,
     "llama-3.3-70b-versatile",
-    "openai/gpt-oss-20b",
     "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
     "moonshotai/kimi-k2-instruct",
     "qwen/qwen3-32b",
-    "llama3-8b-8192",
+    "llama-3.1-8b-instant",  # fast, but weak at tools — last resort
 ]
+MODEL = _PREFERRED_MODELS[0]
 _resolved_model: str | None = None
 
 SYSTEM_PROMPT_PATH = Path(__file__).resolve().parent / "system_prompt.md"
@@ -49,6 +48,29 @@ DISPATCH = {func.__name__: func for func in TOOLS}
 
 def load_system_prompt() -> str:
     return SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+
+
+def _runtime_guard() -> str:
+    """A blunt, always-on rule appended to the system prompt: use tools, never invent.
+
+    Small models will happily make up scorelines and players from their training. This
+    forces the discipline the whole project depends on, and dates it so 'recent matches'
+    is interpreted correctly.
+    """
+    today = dt.date.today().isoformat()
+    return (
+        f"\n\n--- HARD RULES (do not break) ---\n"
+        f"Today's date is {today}. You have NO reliable knowledge of match results, "
+        "fixtures, standings, form, lineups, or which players are in the squad from your "
+        "own training — that information changes constantly and yours would be wrong.\n"
+        "• To mention ANY result, scoreline, fixture, table position, form, injury, or "
+        "player, you MUST first call the matching tool (get_results, get_fixtures, "
+        "get_standings, get_team_form, get_news, get_lineups_and_injuries, read_memory).\n"
+        "• If a tool returns nothing (e.g. the season hasn't started yet), say so plainly. "
+        "NEVER invent a scoreline, a stat, or a player name to fill the gap — that is the "
+        "single worst thing you can do.\n"
+        "• If you're not sure, say 'let me check' and call a tool, or admit you don't know."
+    )
 
 
 def make_client() -> Groq:
@@ -153,7 +175,7 @@ class LeoChat:
 
     def __init__(self, client: Groq, history: list | None = None):
         self.client = client
-        self.messages: list = [{"role": "system", "content": load_system_prompt()}]
+        self.messages: list = [{"role": "system", "content": load_system_prompt() + _runtime_guard()}]
         if history:
             self.messages.extend(history)
 

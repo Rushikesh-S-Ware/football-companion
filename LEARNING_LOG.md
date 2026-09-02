@@ -13,8 +13,27 @@
 
 ---
 
-## 2026-07-27 · Switch Leo's brain to Groq (fast Llama)
+## 2026-07-27 · Grounding fix — the 8b model was inventing facts
 **Commit:** _(this one)_
+
+- **What we did:** The Groq switch defaulted to `llama-3.1-8b-instant`, which
+  **hallucinated** match results and players instead of calling tools (Rushikesh
+  caught it inventing a 5-2 Rayo win and a non-existent player). Reordered the model
+  preference to **tool-reliability first** (70b / gpt-oss / kimi / qwen before 8b) and
+  appended a **hard runtime guard** to the system prompt (dated; "never state a result
+  or player without a tool call; if a tool returns nothing, say so").
+- **Why:** Grounding is the project's whole promise — a *fast* model that fabricates is
+  worse than a slow honest one. Small models are weak at function-calling and prone to
+  confabulation; a bigger tool-reliable model **plus** a blunt rule is the fix.
+- **Why not alternatives:** Keeping 8b for speed (broke the golden rule); prompt-only
+  (a too-weak model ignores it — you need both a capable model and the rule).
+- **How it could be better:** force `tool_choice` for data questions; a per-account
+  model capability check; a lightweight eval that flags any un-sourced stat.
+
+---
+
+## 2026-07-27 · Switch Leo's brain to Groq (fast Llama)
+**Commit:** `ae6c3b0`
 
 - **What we did:** Rewired the agent from Google Gemini to **Groq**
   (`llama-3.3-70b-versatile`). New `agent.py` drives an **OpenAI-style tool loop by
