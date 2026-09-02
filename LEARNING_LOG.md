@@ -13,8 +13,24 @@
 
 ---
 
-## 2026-07-27 · Auto-retry transient Gemini errors (429 / 503)
+## 2026-07-27 · Faster cold start — light load for the web app
 **Commit:** _(this one)_
+
+- **What we did:** `run_ingest(light=True)` fetches **only La Liga** (skips Champions
+  League matches + RSS news); the web app's cold-start now uses it. Verified: light
+  load = 2 API calls (PD matches + standings + teams) vs the full ~570 matches + 3 feeds.
+- **Why:** On a fresh cloud host the app was pulling *everything* before showing the
+  page — the slowest moment. La Liga + Barça covers most chat; the full `ingest`
+  command still gets UCL + news.
+- **Why not alternatives:** committing a pre-built data snapshot (binary + goes stale);
+  no ingest at all (then the data tools return nothing).
+- **How it could be better:** stream Leo's replies (feels faster per message); the
+  free-tier machine + LLM are the real ceiling — local run or a small paid tier removes it.
+
+---
+
+## 2026-07-27 · Auto-retry transient Gemini errors (429 / 503)
+**Commit:** `6245904`
 
 - **What we did:** Added `agent.send_message()` — it retries transient free-tier
   errors (429 rate limit, **503 "high demand"/overloaded**, 500) with 3s → 6s → 9s

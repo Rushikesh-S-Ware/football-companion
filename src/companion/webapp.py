@@ -51,7 +51,7 @@ def _ensure_data() -> bool:
     if empty and os.getenv("FOOTBALL_DATA_API_TOKEN"):
         from companion.ingest import run_ingest
 
-        run_ingest()
+        run_ingest(light=True)  # La Liga only — fast; run the full `ingest` for UCL + news
     return True
 
 

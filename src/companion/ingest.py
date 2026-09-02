@@ -26,12 +26,18 @@ if hasattr(sys.stdout, "reconfigure"):
 COMPETITIONS = ["PD", "CL"]
 
 
-def run_ingest(db_path=DEFAULT_DB_PATH) -> dict[str, object]:
-    """Do one full ingest. Returns a {step: count-or-error} summary dict."""
+def run_ingest(db_path=DEFAULT_DB_PATH, light: bool = False) -> dict[str, object]:
+    """Do one ingest. Returns a {step: count-or-error} summary dict.
+
+    `light=True` fetches only La Liga (skips Champions League + news) — used for the
+    web app's cold-start load so the page opens fast. The full `ingest` command still
+    pulls everything.
+    """
     load_dotenv()
     fd_token = os.getenv("FOOTBALL_DATA_API_TOKEN")
     af_key = os.getenv("API_FOOTBALL_KEY")
     fetched_at = now_utc()
+    competitions = ["PD"] if light else COMPETITIONS
 
     # API-Football's FREE plan cannot access the current season (only ~2022–2024),
     # so it can't give us live lineups/injuries. We leave it OFF by default to save
@@ -46,7 +52,7 @@ def run_ingest(db_path=DEFAULT_DB_PATH) -> dict[str, object]:
     # --- football-data.org: matches + standings (also feeds the teams table) ---
     match_payloads: list[dict] = []
     standings_payloads: list[dict] = []
-    for code in COMPETITIONS:
+    for code in competitions:
         try:
             payload = sources.fetch_competition_matches(fd_token, code)
             match_payloads.append(payload)
@@ -99,12 +105,13 @@ def run_ingest(db_path=DEFAULT_DB_PATH) -> dict[str, object]:
         except Exception as exc:  # noqa: BLE001
             summary["injuries"] = f"ERROR: {exc}"
 
-    # --- RSS news ---
-    try:
-        rows = sources.fetch_and_parse_news(fetched_at)
-        summary["news"] = insert_rows(con, "news", rows)
-    except Exception as exc:  # noqa: BLE001
-        summary["news"] = f"ERROR: {exc}"
+    # --- RSS news (skipped on the light/cold-start load) ---
+    if not light:
+        try:
+            rows = sources.fetch_and_parse_news(fetched_at)
+            summary["news"] = insert_rows(con, "news", rows)
+        except Exception as exc:  # noqa: BLE001
+            summary["news"] = f"ERROR: {exc}"
 
     con.close()
     return summary
