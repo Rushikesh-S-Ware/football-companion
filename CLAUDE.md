@@ -158,9 +158,10 @@ itself, write notes, update opinions; see its season accuracy; and explain every
 module in plain English. Everything beyond that is phase 2.
 
 ## Current status
-- **Phases 0–3 complete.** Data layer (`ingest`), memory system, and the companion
-  (`chat` + `briefing` on the Gemini free tier, `gemini-flash-latest`) are built and
-  verified — Leo pulls real data, holds opinions, and logs predictions (dry run:
-  Elche vs Barça briefing + AWAY_WIN 0-2 prediction logged). **Phase 4 (learning loop
-  — `review` + `stats` + Streamlit + finished README): next.** (Pivoted from an earlier
-  FPL-manager concept.) Update this line at the end of each phase.
+- **v1 COMPLETE — Phases 0–4 done.** Data layer (`ingest`), memory system, companion
+  (`chat` + `briefing` on Gemini `gemini-flash-latest`), and the learning loop
+  (`review` + `stats` + Streamlit `dashboard` + finished README). Leo pulls real data,
+  holds opinions, logs predictions, and scores himself (verified: dashboard shows
+  1/1 100% on a backtested prediction). (Pivoted from an earlier FPL-manager concept.)
+  **v2 ideas (see LEARNING_LOG):** ML on the prediction-error log, structured
+  lineups/injuries (paid API-Football), confidence calibration, public deploy.
